@@ -45,6 +45,10 @@ namespace UnityEditor.Rendering.Universal
         ShaderKeyword m_DeprecatedShadowsCascade = new ShaderKeyword("_SHADOWS_CASCADE");
         ShaderKeyword m_DeprecatedLocalShadowsEnabled = new ShaderKeyword("_LOCAL_SHADOWS_ENABLED");
 
+        ShaderKeyword m_Multiview = new ShaderKeyword("STEREO_MULTIVIEW_ON");
+        ShaderKeyword m_SinglePassInstance = new ShaderKeyword("STEREO_INSTANCING_ON");
+        ShaderKeyword m_SinglePassStereo = new ShaderKeyword("UNITY_SINGLE_PASS_STEREO");
+
         int m_TotalVariantsInputCount;
         int m_TotalVariantsOutputCount;
 
@@ -183,6 +187,23 @@ namespace UnityEditor.Rendering.Universal
             return false;
         }
 
+        bool StripXRVariants(ShaderCompilerData compilerData)
+        {
+            // Strip SPI when Multiview is supported
+            if (EditorUserBuildSettings.GetBuildPlatformSupportsMultiview(EditorUserBuildSettings.activeBuildTarget) &&
+                compilerData.shaderCompilerPlatform == ShaderCompilerPlatform.Vulkan &&
+                compilerData.shaderKeywordSet.IsEnabled(m_SinglePassInstance))
+                return true;
+
+            // Strip Multiview when SPI is supported and multiview isn't
+            if (!EditorUserBuildSettings.GetBuildPlatformSupportsMultiview(EditorUserBuildSettings.activeBuildTarget) &&
+                (compilerData.shaderKeywordSet.IsEnabled(m_Multiview) || compilerData.shaderKeywordSet.IsEnabled(m_SinglePassStereo)) &&
+                EditorUserBuildSettings.GetBuildPlatformSupportsSinglePassInstancing(EditorUserBuildSettings.activeBuildTarget))
+                return true;
+
+            return false;
+        }
+
         bool StripUnused(ShaderFeatures features, Shader shader, ShaderSnippetData snippetData, ShaderCompilerData compilerData)
         {
             if (StripUnusedShader(features, shader, compilerData))
@@ -201,6 +222,9 @@ namespace UnityEditor.Rendering.Universal
                 return true;
 
             if (StripDeprecated(compilerData))
+                return true;
+
+            if (StripXRVariants(compilerData))
                 return true;
 
             return false;
