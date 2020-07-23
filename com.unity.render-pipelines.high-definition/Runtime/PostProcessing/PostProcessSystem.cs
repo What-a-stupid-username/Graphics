@@ -1824,7 +1824,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (taaEnabled)
                 {
                     bool useMips = false;
-                    ReprojectCoCHistory(cmd, camera, useMips, ref fullresCoC);
+                    bool maxBlending = false;
+                    ReprojectCoCHistory(cmd, camera, useMips, maxBlending, ref fullresCoC);
                 }
 
                 m_HDInstance.PushFullScreenDebugTexture(camera, cmd, fullresCoC, FullScreenDebugMode.DepthOfFieldCoc);
@@ -2268,7 +2269,7 @@ namespace UnityEngine.Rendering.HighDefinition
             previous = camera.GetPreviousFrameRT((int)HDCameraFrameHistoryType.DepthOfFieldCoC);
         }
 
-        void ReprojectCoCHistory(CommandBuffer cmd, HDCamera camera, bool useMips, ref RTHandle fullresCoC)
+        void ReprojectCoCHistory(CommandBuffer cmd, HDCamera camera, bool useMips, bool maxBlending, ref RTHandle fullresCoC)
         {
             GrabCoCHistory(camera, out var prevCoCTex, out var nextCoCTex, useMips);
             var cocHistoryScale = new Vector2(camera.historyRTHandleProperties.rtHandleScale.z, camera.historyRTHandleProperties.rtHandleScale.w);
@@ -2276,6 +2277,11 @@ namespace UnityEngine.Rendering.HighDefinition
             //Note: this reprojection creates some ghosting, we should replace it with something based on the new TAA
             ComputeShader cs = m_Resources.shaders.depthOfFieldCoCReprojectCS;
             int kernel = cs.FindKernel("KMain");
+            cs.shaderKeywords = null;
+
+            if (maxBlending)
+                cs.EnableKeyword("ENABLE_MAX_BLENDING");
+
             cmd.SetComputeVectorParam(cs, HDShaderIDs._Params, new Vector4(camera.resetPostProcessingHistory ? 0f : 0.91f, cocHistoryScale.x, cocHistoryScale.y, 0f));
             cmd.SetComputeTextureParam(cs, kernel, HDShaderIDs._InputCoCTexture, fullresCoC);
             cmd.SetComputeTextureParam(cs, kernel, HDShaderIDs._InputHistoryCoCTexture, prevCoCTex);
@@ -2367,7 +2373,8 @@ namespace UnityEngine.Rendering.HighDefinition
                 if (taaEnabled)
                 {
                     bool useMips = true;
-                    ReprojectCoCHistory(cmd, camera, useMips, ref fullresCoC);
+                    bool maxBlending = true;
+                    ReprojectCoCHistory(cmd, camera, useMips, maxBlending, ref fullresCoC);
                 }
             }
 
