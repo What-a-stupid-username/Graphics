@@ -744,6 +744,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed an issue with Stacklit shader not compiling correctly in player with debug display on (1260579)
 - Fixed couple issues in the dependence of building the ray tracing acceleration structure.
 - Fix sun disk intensity
+- Fix several issues with physically-based DoF (TAA ghosting of the CoC buffer, smooth layer transitions, etc)
 
 ### Changed
 - Improve MIP selection for decals on Transparents
